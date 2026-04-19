@@ -1,0 +1,11 @@
+{
+    "cnn": {
+        "train_accuracy": 0.9829642176628113,
+        "val_accuracy": 0.7448275685310364
+    },
+    "mobilenet": {
+        "train_accuracy": 0.9965928196907043,
+        "val_accuracy": 0.931034505367279
+    },
+    "best_model": "MobileNetV2"
+}

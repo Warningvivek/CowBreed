@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cow Breed Detector</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+<div class="navbar">
+    🐄 Cow Breed Detector
+</div>
+
+<div class="container">
+
+    <!-- TITLE -->
+    <h1>Upload an Image of a Cow</h1>
+    <p class="subtitle">Detect the breed of the cow from the photo.</p>
+
+    <!-- UPLOAD -->
+    <div class="upload-box">
+        <input type="file" id="fileInput">
+        <button onclick="uploadImage()">Detect</button>
+    </div>
+
+    <hr>
+
+    <!-- RESULT -->
+    <h2>Detection Result</h2>
+
+    <div class="result-card">
+
+        <!-- IMAGE -->
+        <div class="image-wrapper">
+            <img id="previewImage" class="result-img">
+        </div>
+
+        <!-- DETAILS -->
+        <div class="result-info">
+
+            <h3 class="success">Breed Identified ✅</h3>
+            <h1 id="breed"></h1>
+
+            <p><b>Confidence:</b> <span id="confidence"></span></p>
+            <p><b>Origin:</b> <span id="origin"></span></p>
+
+            <p class="desc"><b>Description:</b> <span id="description"></span></p>
+
+            <hr>
+
+            <h4>Other Possible Breeds:</h4>
+            <div id="others"></div>
+
+        </div>
+
+    </div>
+
+    <!-- BUTTONS -->
+    <div class="buttons">
+        <button class="blue-btn" onclick="location.reload()">Analyze Another Photo</button>
+        <button class="green-btn">Download Report</button>
+    </div>
+
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+
+</body>
+</html>
