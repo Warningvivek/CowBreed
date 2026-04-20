@@ -1,98 +1,107 @@
 from flask import Flask, render_template, request, jsonify
-import numpy as np
-from tensorflow.keras.models import load_model
-from tensorflow.keras.preprocessing.image import load_img, img_to_array
 import os
+import numpy as np
+import cv2
+import json
+from werkzeug.utils import secure_filename
+from tensorflow.keras.models import load_model
 
 app = Flask(__name__)
 
-IMAGE_SIZE = (224,224)
+UPLOAD_FOLDER = "static/uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# LOAD MODELS
-cnn_model = load_model("models/cnn_model.h5")
-mobilenet_model = load_model("models/final_model.keras")
+# ✅ Load model
+model = load_model("models/final_model.keras")
 
-class_names = sorted(os.listdir("data/images"))
+# ✅ Load class mapping (LIST format)
+with open("models/class_mapping.json", "r") as f:
+    class_mapping = json.load(f)
 
-# DISEASES
-disease_map = {
-    "Lakhimi": ["Mastitis", "Foot and Mouth Disease", "Milk Fever"],
-    "Sahiwal": ["Heat Stress", "Tick Fever", "Bovine Babesiosis"],
-    "Umblachery": ["Skin Infection", "Parasitic Disease", "Ringworm"],
-    "siri": ["Respiratory Infection", "Digestive Disorder", "Bloat"]
-}
+# Convert to index → class
+index_to_class = {i: name for i, name in enumerate(class_mapping)}
 
-# 🔥 NEW: BREED INFO
+# ✅ Breed info (for your 4 classes)
 breed_info = {
-    "Lakhimi": {"origin": "India", "description": "High milk yield breed"},
-    "Sahiwal": {"origin": "India/Pakistan", "description": "Heat tolerant dairy breed"},
-    "Umblachery": {"origin": "Tamil Nadu", "description": "Strong draught breed"},
-    "siri": {"origin": "Bhutan", "description": "Mountain breed"}
+    "Sahiwal": {
+        "origin": "Punjab (India/Pakistan)",
+        "description": "High milk yield and heat tolerant breed"
+    },
+    "Lakhimi": {
+        "origin": "Assam (India)",
+        "description": "Indigenous breed adapted to humid climate"
+    },
+    "Siri": {
+        "origin": "Himalayan region",
+        "description": "Strong breed used for draft and milk"
+    },
+    "Umblachery": {
+        "origin": "Tamil Nadu (India)",
+        "description": "Used for draught and agricultural work"
+    }
 }
 
-def preprocess(image):
-    img = load_img(image, target_size=IMAGE_SIZE)
-    img = img_to_array(img)/255.0
+# 🔥 Prediction function
+def predict_breed(filepath):
+    img = cv2.imread(filepath)
+
+    # ⚠️ change size if your model used different input
+    img = cv2.resize(img, (224, 224))
+
+    img = img / 255.0
     img = np.expand_dims(img, axis=0)
-    return img
+
+    preds = model.predict(img)[0]
+
+    top_index = np.argmax(preds)
+    confidence = float(preds[top_index] * 100)
+
+    breed = index_to_class[top_index]
+
+    # Top 3 predictions
+    top_indices = preds.argsort()[-3:][::-1]
+
+    others = []
+    for i in top_indices[1:]:
+        others.append({
+            "breed": index_to_class[i],
+            "conf": round(float(preds[i] * 100), 2)
+        })
+
+    info = breed_info.get(breed, {"origin": "Unknown", "description": "N/A"})
+
+    return {
+        "breed": breed,
+        "confidence": round(confidence, 2),
+        "origin": info["origin"],
+        "description": info["description"],
+        "others": others
+    }
+
 
 @app.route("/")
 def home():
     return render_template("index.html")
 
+
 @app.route("/predict", methods=["POST"])
 def predict():
+    if "file" not in request.files:
+        return jsonify({"error": "No file uploaded"})
+
     file = request.files["file"]
-    filepath = os.path.join("static", file.filename)
+
+    if file.filename == "":
+        return jsonify({"error": "No selected file"})
+
+    filename = secure_filename(file.filename)
+    filepath = os.path.join(UPLOAD_FOLDER, filename)
     file.save(filepath)
 
-    img = preprocess(filepath)
+    result = predict_breed(filepath)
 
-    preds_cnn = cnn_model.predict(img)[0]
-    preds_resnet = mobilenet_model.predict(img)[0]
+    return jsonify(result)
 
-    idx_cnn = np.argmax(preds_cnn)
-    idx_resnet = np.argmax(preds_resnet)
-
-    conf_cnn = float(preds_cnn[idx_cnn] * 100)
-    conf_resnet = float(preds_resnet[idx_resnet] * 100)
-
-    # BEST MODEL
-    if conf_resnet > conf_cnn:
-        preds = preds_resnet
-        final_conf = conf_resnet
-    else:
-        preds = preds_cnn
-        final_conf = conf_cnn
-
-    final_idx = np.argmax(preds)
-    breed = class_names[final_idx].strip()
-
-    # diseases
-    diseases = disease_map.get(breed, ["No major disease found"])
-
-    # origin + description
-    info = breed_info.get(breed, {})
-    origin = info.get("origin", "Unknown")
-    description = info.get("description", "No description available")
-
-    # 🔥 OTHER BREEDS (top 3)
-    top3 = np.argsort(preds)[-3:][::-1]
-    others = []
-    for i in top3[1:]:
-        others.append({
-            "breed": class_names[i],
-            "conf": float(round(float(preds[i]*100), 2))
-})
-
-    return jsonify({
-        "breed": breed,
-        "confidence": round(final_conf, 2),
-        "origin": origin,
-        "description": description,
-        "diseases": diseases,
-        "others": others
-    })
 
 if __name__ == "__main__":
     app.run(debug=True)
