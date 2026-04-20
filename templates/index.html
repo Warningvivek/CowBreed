@@ -1,70 +1,223 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Cow Breed Detector</title>
+    <title>CowBreed — Intelligent Breed Detector</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Clash+Display:wght@500;600;700&family=Satoshi:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@400;500;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-
 <body>
 
 <!-- NAVBAR -->
-<div class="navbar">
-    🐄 Cow Breed Detector
+<nav class="navbar">
+    <div class="nav-inner">
+        <div class="nav-brand">
+            <span class="brand-icon">🐄</span>
+            <span class="brand-text">CowBreed<span class="brand-ai">AI</span></span>
+        </div>
+        <div class="nav-links">
+            <a href="#" class="nav-link active">Home</a>
+            <a href="#upload" class="nav-link">Detect</a>
+            <a href="#" class="nav-link">Breeds</a>
+            <a href="#" class="nav-link">About</a>
+        </div>
+    </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+    <div class="hero-inner">
+        <div class="hero-badge">
+            <span class="badge-dot"></span>
+            CNN Model · 50 Indian Breeds · TensorFlow
+        </div>
+        <h1 class="hero-title">
+            Identify Your <span class="highlight">Cattle Breed</span><br>in Seconds
+        </h1>
+        <p class="hero-sub">
+            AI-powered breed classification for 50 indigenous Indian cows and buffaloes. Upload a photo and get instant results with confidence scoring.
+        </p>
+        <a href="#upload" class="hero-cta">
+            <span class="cta-icon">🔍</span>
+            Start Classifying
+        </a>
+    </div>
+
+    <div class="hero-features">
+        <div class="feat-card">
+            <div class="feat-icon">📷</div>
+            <div class="feat-title">Photo Upload</div>
+            <div class="feat-desc">Upload any JPG or PNG image of a cow or buffalo</div>
+        </div>
+        <div class="feat-card">
+            <div class="feat-icon">🧠</div>
+            <div class="feat-title">Deep Learning</div>
+            <div class="feat-desc">4-layer CNN trained on 14,000+ images across 50 breeds</div>
+        </div>
+        <div class="feat-card">
+            <div class="feat-icon">📋</div>
+            <div class="feat-title">Breed Info</div>
+            <div class="feat-desc">Get origin, description and top alternative predictions</div>
+        </div>
+    </div>
+</section>
+
+<!-- UPLOAD -->
+<section class="upload-section" id="upload">
+    <div class="section-inner">
+        <div class="section-label">Step 1 — Upload</div>
+        <h2 class="section-title">Upload an image of a cow</h2>
+        <p class="section-sub">Supports JPG, PNG, JPEG · Up to 10MB</p>
+
+        <label class="drop-zone" id="dropZone">
+            <input type="file" id="fileInput" accept="image/*" onchange="handleFile(this)">
+            <div class="drop-idle" id="dropIdle">
+                <div class="drop-icon-wrap">
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </div>
+                <p class="drop-main">Drag &amp; drop your image here</p>
+                <p class="drop-or">or <span>click to browse</span></p>
+            </div>
+            <div class="drop-ready" id="dropReady" style="display:none">
+                <img id="previewThumb" class="thumb" alt="preview">
+                <div class="thumb-info">
+                    <span id="previewName" class="thumb-name"></span>
+                    <span class="thumb-change">Click to change image</span>
+                </div>
+            </div>
+        </label>
+
+        <button class="detect-btn" id="detectBtn" onclick="uploadImage()" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Detect Breed
+        </button>
+    </div>
+</section>
+
+<!-- LOADING -->
+<div id="loadingState" class="loading-state" style="display:none">
+    <div class="loading-inner">
+        <div class="spinner"></div>
+        <p class="loading-text">Running inference through 4 convolutional layers…</p>
+        <div class="loading-track"><div class="loading-bar"></div></div>
+    </div>
 </div>
 
-<div class="container">
+<!-- RESULT -->
+<section class="result-section" id="resultSection" style="display:none">
+    <div class="section-inner">
+        <div class="section-label">Step 2 — Result</div>
+        <h2 class="section-title">Detection Result</h2>
 
-    <!-- TITLE -->
-    <h1>Upload an Image of a Cow</h1>
-    <p class="subtitle">Detect the breed of the cow from the photo.</p>
+        <div class="result-card">
+            <div class="result-img-col">
+                <div class="result-img-frame">
+                    <img id="previewImage" class="result-img" alt="uploaded cow">
+                    <div class="img-badge">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                        Analysed
+                    </div>
+                </div>
+            </div>
 
-    <!-- UPLOAD -->
-    <div class="upload-box">
-        <input type="file" id="fileInput">
-        <button onclick="uploadImage()">Detect</button>
-    </div>
+            <div class="result-info-col">
+                <div class="breed-row">
+                    <span class="breed-label">Breed identified</span>
+                    <h3 class="breed-name" id="breed"></h3>
+                </div>
 
-    <hr>
+                <div class="conf-block">
+                    <div class="conf-top">
+                        <span class="conf-label">Confidence</span>
+                        <span class="conf-pct" id="confidence"></span>
+                    </div>
+                    <div class="conf-track">
+                        <div class="conf-fill" id="confFill"></div>
+                    </div>
+                </div>
 
-    <!-- RESULT -->
-    <h2>Detection Result</h2>
+                <div class="info-row">
+                    <span class="info-key">Origin</span>
+                    <span class="info-val" id="origin"></span>
+                </div>
 
-    <div class="result-card">
+                <div class="info-col">
+                    <span class="info-key">Description</span>
+                    <p class="info-desc" id="description"></p>
+                </div>
 
-        <!-- IMAGE -->
-        <div class="image-wrapper">
-            <img id="previewImage" class="result-img">
+                <div class="info-col">
+                    <span class="info-key">Other possibilities</span>
+                    <div id="others" class="others-list"></div>
+                </div>
+            </div>
         </div>
 
-        <!-- DETAILS -->
-        <div class="result-info">
-
-            <h3 class="success">Breed Identified ✅</h3>
-            <h1 id="breed"></h1>
-
-            <p><b>Confidence:</b> <span id="confidence"></span></p>
-            <p><b>Origin:</b> <span id="origin"></span></p>
-
-            <p class="desc"><b>Description:</b> <span id="description"></span></p>
-
-            <hr>
-
-            <h4>Other Possible Breeds:</h4>
-            <div id="others"></div>
-
+        <div class="result-actions">
+            <button class="btn-secondary" onclick="location.reload()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.12"/></svg>
+                Analyse Another
+            </button>
+            <button class="btn-primary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download Report
+            </button>
         </div>
-
     </div>
+</section>
 
-    <!-- BUTTONS -->
-    <div class="buttons">
-        <button class="blue-btn" onclick="location.reload()">Analyze Another Photo</button>
-        <button class="green-btn">Download Report</button>
+<footer class="footer">
+    <div class="footer-inner">
+        <span>🐄 CowBreed AI &nbsp;·&nbsp; Deep learning for Indian cattle breeds</span>
+        <span class="footer-muted">50 breeds · ~14k images · CNN · TensorFlow</span>
     </div>
-
-</div>
+</footer>
 
 <script src="{{ url_for('static', filename='script.js') }}"></script>
+<script>
+function handleFile(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    document.getElementById('previewThumb').src = url;
+    document.getElementById('previewImage').src = url;
+    document.getElementById('previewName').textContent = file.name;
+    document.getElementById('dropIdle').style.display = 'none';
+    document.getElementById('dropReady').style.display = 'flex';
+    document.getElementById('detectBtn').disabled = false;
+}
 
+const _orig = uploadImage;
+uploadImage = function () {
+    const file = document.getElementById('fileInput').files[0];
+    if (!file) { alert('Upload an image first'); return; }
+    document.getElementById('loadingState').style.display = 'flex';
+    document.getElementById('resultSection').style.display = 'none';
+    document.getElementById('loadingState').scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    const fd = new FormData();
+    fd.append('file', file);
+    fetch('/predict', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('breed').textContent = data.breed;
+            document.getElementById('confidence').textContent = data.confidence + '%';
+            document.getElementById('confFill').style.width = Math.min(data.confidence, 100) + '%';
+            document.getElementById('origin').textContent = data.origin;
+            document.getElementById('description').textContent = data.description;
+            document.getElementById('others').innerHTML = data.others
+                .map(o => `<div class="other-row">
+                    <span class="other-name">${o.breed}</span>
+                    <span class="other-bar-wrap"><span class="other-bar" style="width:${Math.min(o.conf,100)}%"></span></span>
+                    <span class="other-pct">${o.conf}%</span>
+                </div>`).join('');
+            document.getElementById('resultSection').style.display = 'block';
+            document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+};
+</script>
 </body>
 </html>
